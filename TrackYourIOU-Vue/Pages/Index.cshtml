@@ -1,0 +1,178 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+
+<!--Loan List-->
+<h1>Loan Entries</h1>
+
+<div id="app">
+    <table class="table table-striped">
+        <tr>
+            <th>
+                Amount
+            </th>
+            <th>
+                Borrower
+            </th>
+            <th>
+                Loan Date
+            </th>
+            <th>
+                Loan Repaid
+            </th>
+            <th>
+            </th>
+            <th>Action
+            </th>
+            <th></th>
+        </tr>
+
+        <tr v-for="loan in loans" id="LoanList">
+            <td>$ {{loan.loanAmount}}</td>
+            <td>{{loan.nameOfBorrower}}</td>
+            <td>{{loan.loanedDate}}
+             
+
+            </td>
+            <td>{{loan.isLoanRepaid}}</td>
+            <td style="width: 180px">
+               <span class="row loan-form" v-show="loan.showsettleform">
+                    <input type="date" style="width: 160px;margin-bottom:10px" class="form-control repaymentDate"
+                    v-model="loan.repaymentDate" placeholder="Enter repayment date" />
+                    <button class="btn btn-primary settle-save" style="margin-right:28px" v-on:click.stop.prevent="settleLoan(loan)">Save</button> 
+                    <button class="btn btn-default settle-cancel" v-on:click="loan.showsettleform = false">Cancel</button>
+                </span>
+                </td>
+            <td><a href="#" v-if="!loan.isLoanRepaid" v-on:click="loan.showsettleform = true">settle</a>
+                
+            </td>
+            <td><a href="#" v-on:click.stop.prevent="deleteLoan(loan)">delete</a></td>
+        </tr>
+    </table>
+
+<!--New Loan Form-->
+<div>
+    <hr />
+    <button type="button" id="Add" class="btn btn-primary" v-on:click="showcreateform = !showcreateform">Add a new entry</button>
+
+    <br /><br />
+    <form id="createLoanForm" class="form" v-on:submit.stop.prevent="createLoan" v-if="showcreateform">
+        <div class="form-group">
+            <label for="loanAmount">Amount</label>
+            <input type="text" class="form-control" id="loanAmount" placeholder="Loan Amount" v-model="form.loanAmount" />
+        </div>                
+        <div class="form-group">
+            <label for="nameOfBorrower">Borrower</label>
+            <input type="text" class="form-control" id="nameOfBorrower" placeholder="Name" v-model="form.nameOfBorrower"/>
+        </div>
+        <div class="form-group">
+            <label for="loanedDate">Date Of Loan</label>
+            <input type="date" class="form-control" id="loanedDate" placeholder="Loan Date" v-model="form.loanedDate"/>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+</div>
+
+@section scripts {
+<script>
+
+
+    var app = new Vue({
+        el: "#app",
+        data : {
+            showcreateform: false,
+            loans: [],
+            form: {
+                loanAmount: "",
+                nameOfBorrower: "",
+                loanedDate: ""
+            }
+        },
+        mounted: function() {
+            // PERFORM ANY ACTIONS WHEN THE PAGE LOADS HERE - SIMILAR TO JQUERY DOCUMENT.READY
+            this.loadloans();
+        },
+
+        methods: {
+                // ADD ANY METHODS (CLICK, SUBMIT EVENTS, ETC.)
+                loadloans: function () {
+                    console.log("entered loadloans");
+                    var self = this;
+                    $.ajax({
+                        url: "/api/loans",
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        method: 'GET'
+                    }).done(function(loansdata,status,xhr) {
+                        // process the response when status code is 200-299
+                        $.each(loansdata, function(idx, loan) {
+                            loan.showsettleform = false;
+                        });
+                        self.loans = loansdata;
+                    }).fail(function(xhr,status,error) {
+                        // deal with error from server (status code 400-599)
+                        alert("There was an error retrieving loan data");
+                    });
+                },
+                createLoan: function() {
+                    console.log("entered createloan");
+                    var self =this;
+                    $.ajax({
+                        url: '/api/loans',
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        method: 'POST',
+                        data: JSON.stringify(self.form)
+                    }).done(function(responseData, status, xhr) {
+                        self.loadloans(); 
+                        self.form.loanAmount = ""; 
+                        self.form.nameOfBorrower = ""; 
+                        self.form.loanedDate = ""; 
+                    }).fail(function(xhr, status, error) {
+                        alert("There was an error saving your loan");
+                    });
+                },
+                settleLoan: function(loan) {
+                    var self = this;
+                    var requestData = {
+                        repaymentDate: loan.repaymentDate
+                    };
+                    $.ajax({
+                        url: '/api/loans/repay/' + loan.id,
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        method: 'PUT',
+                        data: JSON.stringify(requestData)
+                    }).done(function(responseData, status, xhr) {
+                        self.loadloans();
+                    }).fail(function(xhr, status, error) {
+                        alert("There was an error saving your payment");
+                    });
+                },
+                deleteLoan: function(loan) {
+                    var self = this;
+                    $.ajax({
+                        url: '/api/loans/' + loan.id,
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        method: 'DELETE',
+                    }).done(function(responseData, status, xhr) {
+                        self.loadloans(); // RELOAD THE loan DATA                
+                    }).fail(function(xhr, status, error) {
+                        alert("detle There was an error deleting your loan");
+                    });
+                }
+        },    
+        computed: {
+            // CREATE ANY CALCULATED PROPERTIES HERE. THEY BEHAVE LIKE READ-ONLY DATA
+            
+            
+        }
+    });
+    </script>
+}
