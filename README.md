@@ -1,2 +1,2 @@
 # IOUTracker
-Simple application for tracking loans - JQuery and Ajax Webservice calls
+Simple application for tracking loans - VueJs and Ajax Webservice calls
